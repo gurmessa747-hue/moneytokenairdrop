@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>MONEY</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root { --bg:#ffffff; --card:#f5f7fa; --text:#111; --muted:#666; --blue:#3d8bff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,sans-serif; color:var(--text); background:#ffffff; }
+    .app { max-width:430px; margin:0 auto; min-height:100vh; padding:14px 14px 100px; }
+    .page { display:none; } .page.on { display:block; }
+    h1 { margin:4px 0 16px; font-size:24px; }
+
+    .balance-card {
+      background: linear-gradient(180deg, #3d8bff 0%, #1a6dff 100%);
+      border-radius: 28px;
+      padding: 28px 20px 36px;
+      text-align: center;
+      color: white;
+      margin-bottom: 16px;
+    }
+    .user-info { font-size:15px; opacity:0.9; margin-bottom:16px; }
+    .balance-row { display:flex; justify-content:space-around; margin-top:12px; }
+    .bal-amount { font-size:38px; font-weight:800; }
+    .bal-label { font-size:14px; opacity:0.85; }
+
+    .mining-visual {
+      width: 180px; height: 180px; margin: 10px auto 16px;
+      border-radius: 50%; background: #111; border: 8px solid #fff;
+      display: flex; align-items: center; justify-content: center; flex-direction: column;
+    }
+    .mined-now { font-size:28px; font-weight:800; color:#fff; }
+
+    .card { background:var(--card); border-radius:16px; padding:14px; margin-bottom:12px; }
+    button.claim, button.btn, button.boost {
+      width:100%; padding:16px; border:0; border-radius:14px; background:var(--blue);
+      color:#fff; font-weight:800; font-size:16px; margin-top:8px;
+    }
+    button.boost { background:#222; color:#fff; }
+
+    #wheel {
+      width:220px; height:220px; margin:16px auto; border-radius:50%;
+      border:10px solid #3d8bff; position:relative;
+      background: conic-gradient(#3d8bff 0deg 60deg, #222 60deg 120deg, #3d8bff 120deg 180deg, #222 180deg 240deg, #3d8bff 240deg 300deg, #222 300deg 360deg);
+      transition:transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+    }
+    #wheel-inner {
+      position:absolute; inset:50px; background:#fff; border-radius:50%;
+      display:flex; align-items:center; justify-content:center; font-weight:800; z-index:2;
+    }
+    .segment-label {
+      position:absolute; width:70px; text-align:center; font-size:13px; font-weight:700; color:#fff;
+    }
+
+    .nav { position:fixed; left:0; right:0; bottom:0; display:flex; background:#fff; border-top:1px solid #eee; padding:8px 0 12px; }
+    .nav button { flex:1; background:transparent; border:0; color:var(--muted); font-size:11px; display:flex; flex-direction:column; align-items:center; gap:3px; }
+    .nav button.on { color:var(--blue); }
+    .nav .ico { font-size:22px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section id="home" class="page on">
+      <div class="balance-card">
+        <div class="user-info" id="user-info">Miner · ID —</div>
+        <div class="balance-row">
+          <div><div class="bal-amount" id="balance">0.00</div><div class="bal-label">MONEY</div></div>
+          <div><div class="bal-amount" id="gram-balance">0.00</div><div class="bal-label">GRAM</div></div>
+        </div>
+      </div>
+      <div class="mining-visual">
+        <div class="mined-now" id="mined-now">0.00</div>
+        <div style="font-size:13px;opacity:0.7">MONEY</div>
+      </div>
+      <div class="card" style="text-align:center">
+        <button class="claim" id="claim" disabled>03:59:59</button>
+        <button class="boost" id="boost">Watch ad to boost mining speed for 1hr</button>
+      </div>
+    </section>
+
+    <section id="earn" class="page">
+      <h1>Earn</h1>
+      <div class="card" style="text-align:center">
+        <b>Daily Check-in</b>
+        <div id="checkin-status" style="margin:6px 0">Available</div>
+        <button class="btn" id="checkin">Check in (+0.5 MONEY)</button>
+      </div>
+      <div class="card" style="text-align:center">
+        <div id="wheel">
+          <div class="segment-label" style="top:18px;left:75px">1 MONEY</div>
+          <div class="segment-label" style="top:65px;right:8px">0.5</div>
+          <div class="segment-label" style="bottom:65px;right:8px">0.1</div>
+          <div class="segment-label" style="bottom:18px;left:75px">1 MONEY</div>
+          <div class="segment-label" style="bottom:65px;left:8px">0.5</div>
+          <div class="segment-label" style="top:65px;left:8px">0.1</div>
+          <div id="wheel-inner">SPIN</div>
+        </div>
+        <button class="btn" id="spin">Spin Wheel</button>
+        <div id="spin-result" style="margin-top:12px;font-weight:700;min-height:24px;"></div>
+      </div>
+    </section>
+
+    <section id="tasks" class="page"><h1>Tasks</h1><div class="card">Tasks coming next</div></section>
+    <section id="wallet" class="page"><h1>Wallet</h1><div class="card">Wallet coming next</div></section>
+    <section id="friends" class="page"><h1>Friends</h1><div class="card">Friends coming next</div></section>
+    <section id="profile" class="page"><h1>Profile</h1><div class="card">Profile coming next</div></section>
+  </div>
+
+  <nav class="nav">
+    <button class="on" data-page="home"><span class="ico">🏠</span>Home</button>
+    <button data-page="earn"><span class="ico">🎰</span>Earn</button>
+    <button data-page="tasks"><span class="ico">📋</span>Tasks</button>
+    <button data-page="wallet"><span class="ico">💳</span>Wallet</button>
+    <button data-page="friends"><span class="ico">👥</span>Friends</button>
+    <button data-page="profile"><span class="ico">👤</span>Profile</button>
+  </nav>
+
+  <script>
+    const CYCLE = 4 * 60 * 60 * 1000;
+    const SPIN_COOLDOWN = 12 * 60 * 60 * 1000; // 12 hours
+    const KEY = "money-miner-earn-v2";
+    let startedAt = Date.now(), claimed = 0, bonus = 0, gram = 0, boostUntil = 0, lastSpin = 0, lastCheckin = 0;
+
+    const $ = id => document.getElementById(id);
+    function save() { localStorage.setItem(KEY, JSON.stringify({ startedAt, claimed, bonus, gram, boostUntil, lastSpin, lastCheckin })); }
+    function load() {
+      try {
+        const s = JSON.parse(localStorage.getItem(KEY) || "{}");
+        startedAt = Number(s.startedAt) || Date.now();
+        claimed = Number(s.claimed) || 0;
+        bonus = Number(s.bonus) || 0;
+        gram = Number(s.gram) || 0;
+        boostUntil = Number(s.boostUntil) || 0;
+        lastSpin = Number(s.lastSpin) || 0;
+        lastCheckin = Number(s.lastCheckin) || 0;
+      } catch(e) {}
+    }
+
+    function remaining() { return Math.max(0, CYCLE - (Date.now() - startedAt)); }
+    function format(ms) {
+      const t = Math.floor(ms / 1000);
+      return [Math.floor(t/3600), Math.floor((t%3600)/60), t%60].map(n => String(n).padStart(2,"0")).join(":");
+    }
+
+    function currentMined() {
+      const elapsed = Math.min(CYCLE, Date.now() - startedAt);
+      let amount = elapsed / CYCLE;
+      if (Date.now() < boostUntil) amount *= 1.25;
+      return amount;
+    }
+
+    function paint() {
+      const left = remaining();
+      const ready = left <= 0;
+      $("claim").textContent = ready ? "Claim" : format(left);
+      $("claim").disabled = !ready;
+
+      const total = claimed + bonus;
+      $("balance").textContent = total.toFixed(2);
+      $("gram-balance").textContent = gram.toFixed(2);
+      $("mined-now").textContent = currentMined().toFixed(4);
+
+      if (Date.now() < boostUntil) {
+        $("boost").textContent = "Boost active " + format(boostUntil - Date.now());
+        $("boost").disabled = true;
+      } else {
+        $("boost").textContent = "Watch ad to boost mining speed for 1hr";
+        $("boost").disabled = false;
+      }
+
+      const canSpin = Date.now() - lastSpin >= SPIN_COOLDOWN;
+      $("spin").disabled = !canSpin;
+      $("spin").textContent = canSpin ? "Spin Wheel" : "Next spin in " + format(SPIN_COOLDOWN - (Date.now() - lastSpin));
+
+      const canCheckin = Date.now() - lastCheckin >= 86400000;
+      $("checkin").disabled = !canCheckin;
+      $("checkin-status").textContent = canCheckin ? "Available" : "Come back tomorrow";
+    }
+
+    load(); paint(); setInterval(paint, 1000);
+
+    $("claim").onclick = () => {
+      if (remaining() > 0) return;
+      claimed += currentMined();
+      startedAt = Date.now();
+      save(); paint();
+    };
+
+    $("boost").onclick = () => { boostUntil = Date.now() + 3600000; save(); paint(); };
+
+    $("checkin").onclick = () => {
+      if (Date.now() - lastCheckin < 86400000) return;
+      bonus += 0.5;
+      lastCheckin = Date.now();
+      save(); paint();
+    };
+
+    $("spin").onclick = () => {
+      if (Date.now() - lastSpin < SPIN_COOLDOWN) return;
+      lastSpin = Date.now();
+      const r = Math.random();
+      let label, amount;
+      if (r < 0.60) { label = "1 MONEY"; amount = 1; }
+      else if (r < 0.90) { label = "0.5 MONEY"; amount = 0.5; }
+      else { label = "0.1 MONEY"; amount = 0.1; }
+      bonus += amount;
+      $("wheel").style.transform = `rotate(${1800 + Math.random()*360}deg)`;
+      setTimeout(() => { $("spin-result").textContent = "You got: " + label; save(); paint(); }, 4000);
+    };
+
+    document.querySelectorAll(".nav button").forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll(".nav button").forEach(b => b.classList.remove("on"));
+        document.querySelectorAll(".page").forEach(p => p.classList.remove("on"));
+        btn.classList.add("on");
+        $(btn.dataset.page).classList.add("on");
+      };
+    });
+
+    try {
+      const u = Telegram.WebApp.initDataUnsafe?.user;
+      if (u) $("user-info").textContent = (u.first_name || "Miner") + " · ID " + u.id;
+      Telegram.WebApp.ready(); Telegram.WebApp.expand();
+    } catch(e) {}
+  </script>
+</body>
+</html>
