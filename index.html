@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>MONEY</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root { --bg:#05070a; --card:#11161c; --text:#f4f7fb; --muted:#9aa6b5; --blue:#3d8bff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,sans-serif; color:var(--text); background:#05070a; }
+    .app { max-width:430px; margin:0 auto; min-height:100vh; padding:14px 14px 100px; }
+    .page { display:none; } .page.on { display:block; }
+    h1 { margin:4px 0 16px; font-size:24px; }
+
+    .balance-card {
+      background: linear-gradient(180deg, #3d8bff 0%, #1a6dff 100%);
+      border-radius: 28px;
+      padding: 28px 20px 36px;
+      text-align: center;
+      color: white;
+      margin-bottom: 16px;
+    }
+    .user-info { font-size:15px; opacity:0.9; margin-bottom:16px; }
+    .balance-row { display:flex; justify-content:space-around; margin-top:12px; }
+    .bal-item { text-align:center; }
+    .bal-amount { font-size:38px; font-weight:800; }
+    .bal-label { font-size:14px; opacity:0.85; }
+
+    .mining-visual {
+      width: 180px; height: 180px; margin: 10px auto 16px;
+      border-radius: 50%; background: #111; border: 8px solid #fff;
+      display: flex; align-items: center; justify-content: center; flex-direction: column;
+    }
+    .per-sec { font-size:22px; font-weight:800; color:#fff; }
+
+    .card { background:var(--card); border-radius:16px; padding:14px; margin-bottom:12px; }
+    button.claim, button.btn, button.boost {
+      width:100%; padding:16px; border:0; border-radius:14px; background:var(--blue);
+      color:#fff; font-weight:800; font-size:16px; margin-top:8px;
+    }
+    button.boost { background:#222; }
+
+    .wallet-row { display:flex; align-items:center; gap:12px; }
+    .wallet-icon { width:44px; height:44px; background:var(--blue); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+    .section-label { color:var(--muted); font-size:13px; margin:18px 0 8px; text-transform:uppercase; }
+
+    .nav { position:fixed; left:0; right:0; bottom:0; display:flex; background:#05070a; border-top:1px solid #1a1f26; padding:8px 0 12px; }
+    .nav button { flex:1; background:transparent; border:0; color:var(--muted); font-size:11px; display:flex; flex-direction:column; align-items:center; gap:3px; }
+    .nav button.on { color:var(--blue); }
+    .nav .ico { font-size:22px; }
+
+    #wheel { width:220px; height:220px; margin:16px auto; border-radius:50%; border:10px solid #3d8bff; background:conic-gradient(#3d8bff 0 45deg, #111 45deg 90deg, #3d8bff 90deg 135deg, #111 135deg 180deg, #3d8bff 180deg 225deg, #111 225deg 270deg, #3d8bff 270deg 315deg, #111 315deg 360deg); position:relative; transition:transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); }
+    #wheel-inner { position:absolute; inset:40px; background:#11161c; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section id="home" class="page on">
+      <div class="balance-card">
+        <div class="user-info" id="user-info">Miner · ID —</div>
+        <div class="balance-row">
+          <div class="bal-item"><div class="bal-amount" id="balance">0.00</div><div class="bal-label">MONEY</div></div>
+          <div class="bal-item"><div class="bal-amount" id="gram-balance">0.00</div><div class="bal-label">GRAM</div></div>
+        </div>
+      </div>
+      <div class="mining-visual">
+        <div class="per-sec" id="per-sec">0.000069</div>
+        <div style="font-size:12px;opacity:0.7">MONEY/sec</div>
+      </div>
+      <div class="card" style="text-align:center">
+        <button class="claim" id="claim" disabled>03:59:59</button>
+        <button class="boost" id="boost">Watch ad to boost mining speed for 1hr</button>
+      </div>
+    </section>
+
+    <section id="earn" class="page">
+      <h1>Earn</h1>
+      <div class="card" style="text-align:center">
+        <b>Daily Check-in</b>
+        <div class="note" id="checkin-status">Available</div>
+        <button class="btn" id="checkin">Check in (+0.5 MONEY)</button>
+      </div>
+      <div class="card" style="text-align:center">
+        <div id="wheel"><div id="wheel-inner">SPIN</div></div>
+        <button class="btn" id="spin">Spin Wheel</button>
+        <div id="spin-result" style="margin-top:12px;font-weight:700;min-height:24px;"></div>
+      </div>
+    </section>
+
+    <section id="tasks" class="page">
+      <h1>Tasks</h1>
+      <div class="card"><b>Watch Ads</b><button class="btn" id="watch-ad">Watch Ad</button></div>
+      <div class="card"><b>Join Money Community</b><button class="btn go" data-url="https://t.me/moneycommunity">Join</button></div>
+      <div class="card"><b>Money Labs</b><button class="btn go" data-url="https://t.me/moneylabs">Join</button></div>
+    </section>
+
+    <section id="wallet" class="page">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="color:var(--muted)">GRAM balance</div>
+        <div style="font-size:42px;font-weight:800;margin:6px 0">💎 <span id="wallet-gram">0.00</span></div>
+      </div>
+      <div class="section-label">YOUR WALLET</div>
+      <div class="card wallet-row">
+        <div class="wallet-icon">💳</div>
+        <div style="flex:1"><b>Connect a wallet</b><div class="note">Tonkeeper and others</div></div>
+        <button class="btn" style="width:auto;padding:10px 16px">Connect</button>
+      </div>
+      <div class="section-label">BEFORE YOU WITHDRAW</div>
+      <div class="card">
+        <div class="wallet-row"><div class="wallet-icon">✈️</div><div style="flex:1"><b>Follow Money Community</b></div><button class="btn go" data-url="https://t.me/moneycommunity" style="width:auto">Join</button></div>
+        <div class="wallet-row" style="margin-top:10px"><div class="wallet-icon">✈️</div><div style="flex:1"><b>Follow Money Labs</b></div><button class="btn go" data-url="https://t.me/moneylabs" style="width:auto">Join</button></div>
+      </div>
+      <div class="section-label">WITHDRAW</div>
+      <div class="card">
+        <input id="withdraw-amount" type="number" placeholder="Amount" style="width:100%;padding:12px;border-radius:10px;border:0;background:#1a1f26;color:#fff" />
+        <button class="btn" id="do-withdraw" style="margin-top:8px">Withdraw</button>
+        <div style="margin-top:6px;font-size:13px;color:#ff6b6b">Minimum 0.5 GRAM</div>
+      </div>
+    </section>
+
+    <section id="friends" class="page">
+      <h1>Friends</h1>
+      <div class="card"><b>Invite Link</b><div id="invite-link" style="word-break:break-all;margin:8px 0;color:var(--muted)"></div><button class="btn" id="copy-invite">Copy</button></div>
+      <div class="card"><b>Referral Reward</b><div>2 MONEY + 0.01 GRAM</div><div id="ref-count">0 available</div><button class="btn" id="claim-ref" disabled>Claim</button></div>
+    </section>
+
+    <section id="profile" class="page">
+      <h1>Profile</h1>
+      <div class="card"><div id="uname">Miner</div><div id="tgid" style="color:var(--muted)"></div></div>
+    </section>
+  </div>
+
+  <nav class="nav">
+    <button class="on" data-page="home"><span class="ico">🏠</span>Home</button>
+    <button data-page="earn"><span class="ico">🎰</span>Earn</button>
+    <button data-page="tasks"><span class="ico">📋</span>Tasks</button>
+    <button data-page="wallet"><span class="ico">💳</span>Wallet</button>
+    <button data-page="friends"><span class="ico">👥</span>Friends</button>
+    <button data-page="profile"><span class="ico">👤</span>Profile</button>
+  </nav>
+
+  <script>
+    const CYCLE = 4 * 60 * 60 * 1000;
+    const KEY = "money-miner-v7";
+    const BOT = "moneytokenairdrop_bot";
+    let startedAt = Date.now(), claimed = 0, bonus = 0, gram = 0, refs = 0, myId = "", boostUntil = 0, lastSpin = 0, lastCheckin = 0;
+
+    const $ = id => document.getElementById(id);
+    const save = () => localStorage.setItem(KEY, JSON.stringify({ startedAt, claimed, bonus, gram, refs, boostUntil, lastSpin, lastCheckin }));
+    const load = () => { try { const s = JSON.parse(localStorage.getItem(KEY) || "{}"); startedAt = s.startedAt || Date.now(); claimed = s.claimed || 0; bonus = s.bonus || 0; gram = s.gram || 0; refs = s.refs || 0; boostUntil = s.boostUntil || 0; lastSpin = s.lastSpin || 0; lastCheckin = s.lastCheckin || 0; } catch(e){} };
+
+    function remaining() { return Math.max(0, CYCLE - (Date.now() - startedAt)); }
+    function format(ms) {
+      const t = Math.floor(ms / 1000);
+      return [Math.floor(t/3600), Math.floor((t%3600)/60), t%60].map(n => String(n).padStart(2,"0")).join(":");
+    }
+
+    function paint() {
+      const left = remaining();
+      const ready = left <= 0;
+      $("claim").textContent = ready ? "Claim" : format(left);
+      $("claim").disabled = !ready;
+      $("balance").textContent = (claimed + bonus).toFixed(2);
+      $("gram-balance").textContent = gram.toFixed(2);
+      $("wallet-gram").textContent = gram.toFixed(2);
+      $("ref-count").textContent = refs + " available";
+      $("claim-ref").disabled = refs === 0;
+
+      const perSec = (Date.now() < boostUntil) ? 0.000086 : 0.000069;
+      $("per-sec").textContent = perSec.toFixed(6);
+
+      if (Date.now() < boostUntil) {
+        $("boost").textContent = "Boost active " + format(boostUntil - Date.now());
+        $("boost").disabled = true;
+      } else {
+        $("boost").textContent = "Watch ad to boost mining speed for 1hr";
+        $("boost").disabled = false;
+      }
+
+      const canSpin = Date.now() - lastSpin >= 60 * 60 * 1000;
+      $("spin").disabled = !canSpin;
+      $("spin").textContent = canSpin ? "Spin Wheel" : "Next spin in " + format(60*60*1000 - (Date.now() - lastSpin));
+
+      const canCheckin = Date.now() - lastCheckin >= 24 * 60 * 60 * 1000;
+      $("checkin").disabled = !canCheckin;
+      $("checkin-status").textContent = canCheckin ? "Available" : "Come back tomorrow";
+    }
+
+    load(); paint(); setInterval(paint, 1000);
+
+    $("claim").onclick = () => {
+      if (remaining() > 0) return;
+      let amount = 1;
+      if (Date.now() < boostUntil) amount += 0.25;
+      claimed += amount;
+      startedAt = Date.now();
+      save(); paint();
+    };
+
+    $("boost").onclick = () => { boostUntil = Date.now() + 60 * 60 * 1000; save(); paint(); };
+
+    $("checkin").onclick = () => {
+      if (Date.now() - lastCheckin < 24 * 60 * 60 * 1000) return;
+      bonus += 0.5;
+      lastCheckin = Date.now();
+      save(); paint();
+    };
+
+    $("spin").onclick = () => {
+      if (Date.now() - lastSpin < 60 * 60 * 1000) return;
+      lastSpin = Date.now();
+      const r = Math.random();
+      let reward, label;
+      if (r < 0.60) { reward = 1; label = "1 MONEY"; bonus += 1; }
+      else if (r < 0.90) { reward = 0.5; label = "0.5 MONEY"; bonus += 0.5; }
+      else { reward = 0.1; label = "0.1 MONEY"; bonus += 0.1; }
+      $("wheel").style.transform = `rotate(${360*5 + Math.random()*360}deg)`;
+      setTimeout(() => { $("spin-result").textContent = "You got: " + label; save(); paint(); }, 4000);
+    };
+
+    $("watch-ad").onclick = () => { bonus += 0.5; save(); paint(); };
+
+    document.querySelectorAll(".go").forEach(btn => {
+      btn.onclick = () => {
+        const url = btn.dataset.url;
+        if (window.Telegram?.WebApp?.openTelegramLink) Telegram.WebApp.openTelegramLink(url);
+        else window.open(url, "_blank");
+        bonus += 5; save(); paint();
+        btn.textContent = "Done"; btn.disabled = true;
+      };
+    });
+
+    $("do-withdraw").onclick = () => {
+      const amount = Number($("withdraw-amount").value);
+      if (amount < 0.5) return alert("Minimum 0.5 GRAM");
+      if (amount > gram) return alert("Insufficient balance");
+      gram -= amount;
+      $("withdraw-amount").value = "";
+      save(); paint();
+      alert("Withdrawal request sent");
+    };
+
+    document.querySelectorAll(".nav button").forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll(".nav button").forEach(b => b.classList.remove("on"));
+        document.querySelectorAll(".page").forEach(p => p.classList.remove("on"));
+        btn.classList.add("on");
+        $(btn.dataset.page).classList.add("on");
+      };
+    });
+
+    try {
+      const u = Telegram.WebApp.initDataUnsafe?.user;
+      if (u) {
+        myId = String(u.id);
+        $("user-info").textContent = (u.first_name || "Miner") + " · ID " + myId;
+        $("uname").textContent = u.first_name || "Miner";
+        $("tgid").textContent = "ID " + myId;
+        $("invite-link").textContent = `https://t.me/${BOT}?startapp=${myId}`;
+      }
+      Telegram.WebApp.ready(); Telegram.WebApp.expand();
+    } catch(e) {}
+
+    $("copy-invite").onclick = async () => {
+      try {
+        await navigator.clipboard.writeText($("invite-link").textContent);
+        $("copy-invite").textContent = "Copied!";
+        setTimeout(() => $("copy-invite").textContent = "Copy", 1500);
+      } catch(e) {}
+    };
+
+    $("claim-ref").onclick = () => {
+      bonus += refs * 2;
+      gram += refs * 0.01;
+      refs = 0;
+      save(); paint();
+    };
+  </script>
+</body>
+</html>
