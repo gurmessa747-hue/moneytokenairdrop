@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>MONEY</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root { --bg:#ffffff; --card:#f5f7fa; --text:#111; --muted:#666; --blue:#3d8bff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,sans-serif; color:var(--text); background:#ffffff; }
+    .app { max-width:430px; margin:0 auto; min-height:100vh; padding:14px 14px 100px; }
+    .page { display:none; } .page.on { display:block; }
+    h1 { margin:4px 0 16px; font-size:24px; }
+
+    .balance-card {
+      background: linear-gradient(180deg, #3d8bff 0%, #1a6dff 100%);
+      border-radius: 28px;
+      padding: 28px 20px 36px;
+      text-align: center;
+      color: white;
+      margin-bottom: 16px;
+    }
+    .user-info { font-size:15px; opacity:0.9; margin-bottom:16px; }
+    .balance-row { display:flex; justify-content:space-around; margin-top:12px; }
+    .bal-amount { font-size:38px; font-weight:800; }
+    .bal-label { font-size:14px; opacity:0.85; }
+
+    .mining-visual {
+      width: 180px; height: 180px; margin: 10px auto 16px;
+      border-radius: 50%; background: #111; border: 8px solid #fff;
+      display: flex; align-items: center; justify-content: center; flex-direction: column;
+    }
+    .mined-now { font-size:28px; font-weight:800; color:#fff; }
+
+    .card { background:var(--card); border-radius:16px; padding:14px; margin-bottom:12px; }
+    button.claim, button.btn, button.boost {
+      width:100%; padding:16px; border:0; border-radius:14px; background:var(--blue);
+      color:#fff; font-weight:800; font-size:16px; margin-top:8px;
+    }
+    button.boost { background:#222; color:#fff; }
+
+    .nav { position:fixed; left:0; right:0; bottom:0; display:flex; background:#fff; border-top:1px solid #eee; padding:8px 0 12px; }
+    .nav button { flex:1; background:transparent; border:0; color:var(--muted); font-size:11px; display:flex; flex-direction:column; align-items:center; gap:3px; }
+    .nav button.on { color:var(--blue); }
+    .nav .ico { font-size:22px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section id="home" class="page on">
+      <div class="balance-card">
+        <div class="user-info" id="user-info">Miner · ID —</div>
+        <div class="balance-row">
+          <div><div class="bal-amount" id="balance">0.00</div><div class="bal-label">MONEY</div></div>
+          <div><div class="bal-amount" id="gram-balance">0.00</div><div class="bal-label">GRAM</div></div>
+        </div>
+      </div>
+
+      <div class="mining-visual">
+        <div class="mined-now" id="mined-now">0.00</div>
+        <div style="font-size:13px;opacity:0.7">MONEY</div>
+      </div>
+
+      <div class="card" style="text-align:center">
+        <button class="claim" id="claim" disabled>03:59:59</button>
+        <button class="boost" id="boost">Watch ad to boost mining speed for 1hr</button>
+      </div>
+    </section>
+
+    <!-- Other pages remain the same as before -->
+    <section id="earn" class="page"><h1>Earn</h1><div class="card">Earn section (keep your previous code)</div></section>
+    <section id="tasks" class="page"><h1>Tasks</h1><div class="card">Tasks section</div></section>
+    <section id="wallet" class="page"><h1>Wallet</h1><div class="card">Wallet section</div></section>
+    <section id="friends" class="page"><h1>Friends</h1><div class="card">Friends section</div></section>
+    <section id="profile" class="page"><h1>Profile</h1><div class="card">Profile section</div></section>
+  </div>
+
+  <nav class="nav">
+    <button class="on" data-page="home"><span class="ico">🏠</span>Home</button>
+    <button data-page="earn"><span class="ico">🎰</span>Earn</button>
+    <button data-page="tasks"><span class="ico">📋</span>Tasks</button>
+    <button data-page="wallet"><span class="ico">💳</span>Wallet</button>
+    <button data-page="friends"><span class="ico">👥</span>Friends</button>
+    <button data-page="profile"><span class="ico">👤</span>Profile</button>
+  </nav>
+
+  <script>
+    const CYCLE = 4 * 60 * 60 * 1000;
+    const KEY = "money-miner-home-v1";
+    let startedAt = Date.now(), claimed = 0, bonus = 0, gram = 0, boostUntil = 0;
+
+    const $ = id => document.getElementById(id);
+    function save() { localStorage.setItem(KEY, JSON.stringify({ startedAt, claimed, bonus, gram, boostUntil })); }
+    function load() {
+      try {
+        const s = JSON.parse(localStorage.getItem(KEY) || "{}");
+        startedAt = Number(s.startedAt) || Date.now();
+        claimed = Number(s.claimed) || 0;
+        bonus = Number(s.bonus) || 0;
+        gram = Number(s.gram) || 0;
+        boostUntil = Number(s.boostUntil) || 0;
+      } catch(e) {}
+    }
+
+    function remaining() { return Math.max(0, CYCLE - (Date.now() - startedAt)); }
+    function format(ms) {
+      const t = Math.floor(ms / 1000);
+      return [Math.floor(t/3600), Math.floor((t%3600)/60), t%60].map(n => String(n).padStart(2,"0")).join(":");
+    }
+
+    function currentMined() {
+      const elapsed = Math.min(CYCLE, Date.now() - startedAt);
+      const progress = elapsed / CYCLE;
+      let amount = progress; // 0 to 1
+      if (Date.now() < boostUntil) amount *= 1.25;
+      return amount;
+    }
+
+    function paint() {
+      const left = remaining();
+      const ready = left <= 0;
+      $("claim").textContent = ready ? "Claim" : format(left);
+      $("claim").disabled = !ready;
+
+      const total = claimed + bonus;
+      $("balance").textContent = total.toFixed(2);
+      $("gram-balance").textContent = gram.toFixed(2);
+      $("mined-now").textContent = currentMined().toFixed(4);
+
+      if (Date.now() < boostUntil) {
+        $("boost").textContent = "Boost active " + format(boostUntil - Date.now());
+        $("boost").disabled = true;
+      } else {
+        $("boost").textContent = "Watch ad to boost mining speed for 1hr";
+        $("boost").disabled = false;
+      }
+    }
+
+    load();
+    paint();
+    setInterval(paint, 1000);
+
+    $("claim").onclick = () => {
+      if (remaining() > 0) return;
+      const mined = currentMined();
+      claimed += mined;
+      startedAt = Date.now();
+      save();
+      paint();
+    };
+
+    $("boost").onclick = () => {
+      boostUntil = Date.now() + 60 * 60 * 1000;
+      save();
+      paint();
+    };
+
+    document.querySelectorAll(".nav button").forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll(".nav button").forEach(b => b.classList.remove("on"));
+        document.querySelectorAll(".page").forEach(p => p.classList.remove("on"));
+        btn.classList.add("on");
+        $(btn.dataset.page).classList.add("on");
+      };
+    });
+
+    try {
+      const u = Telegram.WebApp.initDataUnsafe?.user;
+      if (u) {
+        $("user-info").textContent = (u.first_name || "Miner") + " · ID " + u.id;
+      }
+      Telegram.WebApp.ready();
+      Telegram.WebApp.expand();
+    } catch(e) {}
+  </script>
+</body>
+</html>
