@@ -1,4 +1,4 @@
-name = "money-miner"
+name = "moneytokenairdrop"
 main = "src/index.js"
 compatibility_date = "2026-10-03"
 
@@ -7,7 +7,7 @@ directory = "./"
 
 [[kv_namespaces]]
 binding = "REFERRALS"
-id = "14813218a86f46e2b823c40df5ef3a82"
+id = "f596c84f09cd44df9915bfdf523d306c"
 
 [limits]
 subrequests = 100000
