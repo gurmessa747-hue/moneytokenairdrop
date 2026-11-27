@@ -7,7 +7,7 @@ directory = "./"
 
 [[kv_namespaces]]
 binding = "REFERRALS"
-id = "f596c84f09cd44df9915bfdf523d306c"
+id = "772ab510e3974e95a813fcedf8828390"
 
 [limits]
 subrequests = 100000
